@@ -24,13 +24,17 @@ resources:
       user_data: |
         #!/bin/bash
         apt-get update
-        apt-get install nfs-kernel-server -y
+        apt-get install nfs-kernel-server nfs-common -y
+        firewall-cmd --zone=trusted --add-source=10.0.0.0/8
+        firewall-cmd --runtime-to-permanent
+        firewall-cmd --reload
         mkdir -p /exports/nfs
         chown -R cc:cc /exports
         chmod 755 /exports/nfs
-        echo '/exports/nfs 10.0.0.0/8(rw,async,no_root_squash,no_subtree_check)' >> /etc/exports
+        echo '/exports/nfs 10.0.0.0/8(rw,sync,no_root_squash,no_subtree_check)' >> /etc/exports
         exportfs -a
         systemctl enable nfs-kernel-server && systemctl restart nfs-kernel-server
+        ln -s /exports/nfs /shared
 
   nfs_server_ip_association:
     type: OS::Nova::FloatingIPAssociation
@@ -57,8 +61,13 @@ resources:
                 #!/bin/bash
                 apt update
                 apt install nfs-common -y
-                mkdir -p /shared
-                mount -t nfs $nfs_server_ip:/exports/nfs /shared
+                firewall-cmd --zone=trusted --add-source=10.0.0.0/8
+                firewall-cmd --runtime-to-permanent
+                firewall-cmd --reload
+                mkdir -p -m 770 /shared
+                chmod 770 /shared
+                chown -R cc:cc /shared
+                mount -t nfs -o nfsvers=4.2,proto=tcp $nfs_server_ip:/exports/nfs /shared
                 echo "$nfs_server_ip:/exports/nfs /shared    nfs" > /etc/fstab
                 mount -a
               params:
