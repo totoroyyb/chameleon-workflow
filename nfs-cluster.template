@@ -17,9 +17,8 @@ resources:
     properties:
       name:
         str_replace:
-          template: $name-###
+          template: $name
           params:
-            "###": { get_param: "%index%" }
             "$name": { get_param: cluster_name }
       flavor: baremetal
       image: CC-Ubuntu24.04
@@ -38,13 +37,14 @@ resources:
         chown -R cc:cc /exports
         chmod 755 /exports/nfs
         echo '/exports/nfs 10.0.0.0/8(rw,sync,no_root_squash,no_subtree_check)' >> /etc/exports
+        echo '/exports/nfs localhost(rw,sync,no_root_squash,no_subtree_check)' >> /etc/exports
         exportfs -a
         systemctl enable nfs-kernel-server && systemctl restart nfs-kernel-server
         mkdir -p -m 770 /shared
         chmod 770 /shared
         chown -R cc:cc /shared
         mount -t nfs -o nfsvers=4.2,proto=tcp localhost:/exports/nfs /shared
-        echo "localhost:/exports/nfs /shared    nfs" > /etc/fstab
+        echo "localhost:/exports/nfs /shared    nfs" >> /etc/fstab
         mount -a
 
 
@@ -65,8 +65,7 @@ resources:
             str_replace:
               template: $name-###
               params:
-                "###":
-                  yaql: "index + 1"
+                "###": "%index%"
                 "$name": { get_param: cluster_name }
           flavor: baremetal
           image: CC-Ubuntu24.04
@@ -87,7 +86,7 @@ resources:
                 chmod 770 /shared
                 chown -R cc:cc /shared
                 mount -t nfs -o nfsvers=4.2,proto=tcp $nfs_server_ip:/exports/nfs /shared
-                echo "$nfs_server_ip:/exports/nfs /shared    nfs" > /etc/fstab
+                echo "$nfs_server_ip:/exports/nfs /shared    nfs" >> /etc/fstab
                 mount -a
               params:
                 $nfs_server_ip: { get_attr: [nfs_server, first_address] }
