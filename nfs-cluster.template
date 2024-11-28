@@ -15,6 +15,12 @@ resources:
   nfs_server:
     type: OS::Nova::Server
     properties:
+      name:
+        str_replace:
+          template: $name-###
+          params:
+            "###": { get_param: "%index%" }
+            "$name": { get_param: cluster_name }
       flavor: baremetal
       image: CC-Ubuntu24.04
       key_name: { get_param: key_name }
@@ -55,6 +61,13 @@ resources:
       resource_def:
         type: OS::Nova::Server
         properties:
+          name:
+            str_replace:
+              template: $name-###
+              params:
+                "###":
+                  yaql: "index + 1"
+                "$name": { get_param: cluster_name }
           flavor: baremetal
           image: CC-Ubuntu24.04
           key_name: { get_param: key_name }
@@ -81,6 +94,11 @@ resources:
 
 # The parameters section gathers configuration from the user.
 parameters:
+  cluster_name:
+    type: string
+    description: The name prefix of each server in this cluster
+    default: node
+
   nfs_client_count:
     type: number
     description: Number of NFS client instances
